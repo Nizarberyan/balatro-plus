@@ -791,7 +791,7 @@ return {
       c_bplus_sigil_dupe = {
         name = "Dupe",
         text = {
-          "Covert all {C:attention}unselected",
+          "Convert all {C:attention}unselected",
           "cards to {C:attention}selected{} card",
           "{C:blue}-#1#{} Hand",
         },

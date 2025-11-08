@@ -53,24 +53,24 @@ end
 function Blind:hand_played()
   if self.config.blind.hand_played then
     if self.config.blind.hand_played(self) then
-      G.E_MANAGER:add_event(Event {
-        trigger = "immediate",
-        func = function()
+      G.E_MANAGER:add_event(Event({
+        trigger = 'immediate',
+        func = (function()
           SMODS.juice_up_blind()
           G.E_MANAGER:add_event(Event {
-            trigger = "after",
+            trigger = 'after',
             delay = 0.06 * G.SETTINGS.GAMESPEED,
             blockable = false,
             blocking = false,
             func = function()
-              play_sound("tarot2", 0.76, 0.4)
+              play_sound('tarot2', 0.76, 0.4)
               return true
             end,
           })
-          play_sound("tarot2", 1, 0.4)
+          play_sound('tarot2', 1, 0.4)
           return true
-        end,
-      })
+        end)
+      }))
       delay(0.4)
     end
   end
@@ -78,46 +78,34 @@ end
 
 local card_is_suit = Card.is_suit
 function Card:is_suit(suit, bypass_debuff, flush_calc)
-  local opt
-  local first_pass
-  local res
-  local orig_suit = self.base.suit
-  if not G.bplus_card_is_suit_opt then
-    G.bplus_card_is_suit_opt = {}
-    first_pass = true
-  end
-  opt = G.bplus_card_is_suit_opt
-
-  if self.debuff and not bypass_debuff then
-    return
-  end
-
-  if not res and not opt.stone_carving and SMODS.has_enhancement(self, "m_stone") and next(find_joker("j_bplus_stone_carving")) then
-    opt.stone_carving = true
-    local orig_center = self.config.center
-    self.config.center = G.P_CENTERS.c_base
-    self.base.suit = G.GAME.current_round.bplus_stone_carving_card.suit
-    res = self:is_suit(suit, bypass_debuff, flush_calc)
-    self.config.center = orig_center
-    self.base.suit = orig_suit
-  end
-
-  if not res and not opt.blured and next(find_joker("j_bplus_blured")) then
-    opt.blured = true
-    local transform = G.GAME.current_round.bplus_blured_suit
-    if self:is_suit(transform.from, bypass_debuff, flush_calc) then
-      self.base.suit = transform.to
+  if flush_calc then
+    if SMODS.has_enhancement(self, "m_stone") and not self.debuff and next(find_joker("j_bplus_stone_carving")) then
+      return G.GAME.current_round.bplus_stone_carving_card.suit == suit
     end
-    res = self:is_suit(suit, bypass_debuff, flush_calc)
-    self.base.suit = orig_suit
-    res = res or self:is_suit(suit, bypass_debuff, flush_calc)
-  end
 
-  if first_pass then
-    G.bplus_card_is_suit_opt = nil
-  end
-  if res ~= nil then
-    return res
+    if not self.debuff and next(find_joker("j_bplus_blured")) then
+      local blured_suit
+      local transform = G.GAME.current_round.bplus_blured_suit
+      if self.base.suit == transform.from then
+        blured_suit = transform.to
+      end
+      return self.base.suit == suit or blured_suit == suit
+    end
+  else
+    if self.debuff and not bypass_debuff then return end
+
+    if self.ability.name == G.P_CENTERS.m_stone.name and next(find_joker("j_bplus_stone_carving")) then
+      return G.GAME.current_round.bplus_stone_carving_card.suit == suit
+    end
+
+    if next(find_joker("j_bplus_blured")) then
+      local blured_suit
+      local transform = G.GAME.current_round.bplus_blured_suit
+      if self.base.suit == transform.from then
+        blured_suit = transform.to
+      end
+      return self.base.suit == suit or blured_suit == suit
+    end
   end
   return card_is_suit(self, suit, bypass_debuff, flush_calc)
 end
@@ -133,14 +121,9 @@ end
 local card_calculate_joker = Card.calculate_joker
 function Card:calculate_joker(ctx)
   local ret = card_calculate_joker(self, ctx)
-  if not ret then
-    return
-  end
-  if ret == true then
-    return ret
-  end
+  if not ret then return end
 
-  if ret.repetitions and not G.GAME.blind.disabled and G.GAME.blind.name == "bl_bplus_lazy" then
+  if type(ret) == "table" and ret.repetitions and not G.GAME.blind.disabled and G.GAME.blind.name == "bl_bplus_lazy" then
     BPlus.bl_lazy_trigger(ret.card or self)
     ret = nil
   end
@@ -151,11 +134,9 @@ end
 local card_calculate_seal = Card.calculate_seal
 function Card:calculate_seal(ctx)
   local ret = card_calculate_seal(self, ctx)
-  if not ret then
-    return
-  end
+  if not ret then return end
 
-  if ret.repetitions and not G.GAME.blind.disabled and G.GAME.blind.name == "bl_bplus_lazy" then
+  if type(ret) == "table" and ret.repetitions and not G.GAME.blind.disabled and G.GAME.blind.name == "bl_bplus_lazy" then
     BPlus.bl_lazy_trigger(ret.card or self)
     ret = nil
   end
